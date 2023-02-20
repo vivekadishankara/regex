@@ -68,7 +68,7 @@ class Pattern:
             self.fsa[state_num][self.ALPHA_DICT[alpha]].append(corr_state)
 
     def append_all_alpha_state(self, state_num, corr_state):
-        for i in range(self.ALPHA_DICT.keys().__len__()):
+        for i in range(self.ALPHA_LEN - 1):
             list_p = self.fsa[state_num][i]
             if len(list_p) and corr_state == list_p[-1]:
                 append = False
@@ -93,7 +93,7 @@ class Pattern:
                 if condition():
                     self.fsa[state_num][i].append(corr_state)
 
-    def fsa_tablize(self):
+    def fsa_tablize_without_empty(self):
         self.fsa = [[[] for _ in range(self.ALPHA_DICT.keys().__len__())] for _ in range(self.states)]
         state_num = 0
         while state_num < self.states:
@@ -152,6 +152,27 @@ class Pattern:
         for i in range(self.states):
             print(self.fsa[i])
 
+    def fsa_tablize(self):
+        self.fsa = [[[] for _ in range(self.ALPHA_LEN)] for _ in range(self.states)]
+
+        state_num = 0
+        while state_num < self.states:
+            state = self.items[state_num]
+            len_state = len(state)
+            state_alpha = state[0]
+            if len_state == 1:
+                self.fill_single_alpha_state(state_num, state)
+            elif len_state == 2:
+                if state[1] == '*':
+                    self.fill_single_alpha_state(state_num, state_alpha, state_num)
+                    self.fill_single_alpha_state(state_num, state_alpha, state_num + 1)
+                    self.fill_single_alpha_state(state_num, '', state_num + 1)
+
+            state_num += 1
+
+        for i in range(self.states):
+            print(self.fsa[i])
+
     def next_agenda(self):
         if len(self.agenda) > 0:
             yield self.agenda[-1]
@@ -170,17 +191,20 @@ class Pattern:
     def generate_states(self, search_state: Tuple[int, int], string):
         current_node, index = search_state
 
-        if index < len(string) and current_node < self.states:
-            c = string[index]
-            for i in self.fsa[current_node][self.ALPHA_DICT[c]]:
-                self.agenda.append((i, index + 1))
+        if current_node < self.states:
+            for i in self.fsa[current_node][self.ALPHA_DICT['']]:
+                self.agenda.append((i, index))
+            if index < len(string):
+                c = string[index]
+                for i in self.fsa[current_node][self.ALPHA_DICT[c]]:
+                    self.agenda.append((i, index + 1))
 
     def match(self, string: str) -> bool:
         self.agenda.append((0, 0))
         len_s = len(string)
 
         while len(self.agenda) > 0:
-            current_state = self.agenda.pop()
+            current_state = self.agenda.pop(0)
             if self.accept_state(current_state, len_s, [self.states]):
                 return True
             else:
@@ -192,7 +216,7 @@ class Pattern:
 
 
 if __name__ == '__main__':
-    # for ps in ['abc', '.', 'a*', 'ab*c', 'ab*bc', 'ab*c*d', 'ab*c*d*e', 'ab*c*d*']:
+    # for ps in ['abc', '.', 'a*', '.*', 'ab*c', 'ab*bc', 'ab*c*d', 'ab*c*d*e', 'ab*c*d*']:
     #     pat = Pattern(ps)
     #     print()
 
@@ -211,14 +235,11 @@ if __name__ == '__main__':
     # pat = Pattern('a*aa')
     # print(pat.match('aaaa'))
 
-    # pat = Pattern("a*a*a*a*a*a*a*a*a*c")
-    #
-    # pat = Pattern(".*.*.*")
-    # print(pat.match("aaaaaaaaaaaaab"))
-    # print(pat.match("aaaaaaaaaaaaaaaaaaab"))
+    pat = Pattern("a*a*a*a*a*a*a*a*a*c")
+    print(pat.match("aaaaaaaaaaaaaaaaaaab"))
 
-    pat = Pattern("a*a*a*a*a*a*a*a*a*a*")
-    pat.match("aaaaaaaaaaaaaaaaaaab")
+    # pat = Pattern("a*a*a*a*a*a*a*a*a*a*")
+    # pat.match("aaaaaaaaaaaaaaaaaaab")
 
     # pat = Pattern(".*ab.a.*a*a*.*b*b*")
     # print(pat.match("abcaaaaaaabaabcabac"))
